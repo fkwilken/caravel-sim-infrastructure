@@ -3,6 +3,7 @@
 from datetime import datetime
 import os
 import sys
+import glob
 from pathlib import Path
 import shutil
 import xml.etree.ElementTree as ET
@@ -298,6 +299,7 @@ class Test:
 
     def convert_list_to_include(self, file):
         paths = ""
+        includes = set()
         with open(file, "r") as f:
             for line in f:
                 # Remove leading and trailing whitespace
@@ -314,9 +316,26 @@ class Test:
                     line = line.replace("$(PDK_ROOT)", f"{self.paths.PDK_ROOT}")
                     line = line.replace("$(PDK)", f"{self.paths.PDK}")
                     # Extract file path from command
-                    if line.startswith("-v"):
-                        file_path = line.split(" ")[1]
-                        paths += f'`include "{file_path}"\n'
+                    if line.startswith("-v") or line.startswith("-sv"):
+                        # Add Verilog or System Verilog, including wildcards
+                        split_line = line.split(" ")
+                        
+                        # Add Includes
+                        include_indices = [i for i, flag in enumerate(split_line) if flag == "-I"]
+                        for i in include_indices:
+                            include_dir = split_line[i+1]
+                            for wild_match in glob.glob(include_dir + '/*vh'):
+                                # paths += f'`include "{wild_match}"\n'
+                                includes.add(wild_match)
+                        
+                        file_path = split_line[-1]
+                        if ("*" in file_path):
+                            for wild_match in glob.glob(file_path):
+                                paths += f'`include "{wild_match}"\n'
+                        else:
+                            paths += f'`include "{file_path}"\n'
+        for include in includes:
+            paths = f'`include "{include}"\n' + paths
         return paths
 
 def remove_argument(to_remove, patt):
@@ -343,7 +362,7 @@ def move_defines_to_start(filename, pattern):
     # print(defines_lines)
     # Remove the extracted lines from the original list
     lines = [f"{line.strip()}\n" for line in lines if line not in defines_lines]
-
+    # lines = [f"{line.strip()}\n" for line in lines if line not in defines_lines and "-I" not in line]
     # Insert the extracted lines at the start of the list
     lines = defines_lines + lines
 
