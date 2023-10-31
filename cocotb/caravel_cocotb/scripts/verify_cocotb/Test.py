@@ -26,6 +26,7 @@ class Test:
         self.paths = paths
         self.hex_dir = f"{self.paths.SIM_PATH}/hex_files/"
         self.local_macros = local_macros  # macros for this test only has  to run local macros
+        self.include_dirs = set()
         self.init_test()
 
     def init_test(self):
@@ -299,7 +300,6 @@ class Test:
 
     def convert_list_to_include(self, file):
         paths = ""
-        includes = set()
         with open(file, "r") as f:
             for line in f:
                 # Remove leading and trailing whitespace
@@ -319,23 +319,17 @@ class Test:
                     if line.startswith("-v") or line.startswith("-sv"):
                         # Add Verilog or System Verilog, including wildcards
                         split_line = line.split(" ")
-                        
-                        # Add Includes
-                        include_indices = [i for i, flag in enumerate(split_line) if flag == "-I"]
-                        for i in include_indices:
-                            include_dir = split_line[i+1]
-                            for wild_match in glob.glob(include_dir + '/*vh'):
-                                # paths += f'`include "{wild_match}"\n'
-                                includes.add(wild_match)
-                        
                         file_path = split_line[-1]
                         if ("*" in file_path):
                             for wild_match in glob.glob(file_path):
                                 paths += f'`include "{wild_match}"\n'
                         else:
                             paths += f'`include "{file_path}"\n'
-        for include in includes:
-            paths = f'`include "{include}"\n' + paths
+                        # Add Includes to Set
+                        include_indices = [i for i, flag in enumerate(split_line) if flag == "-I"]
+                        for i in include_indices:
+                            self.include_dirs.add(split_line[i+1])
+                                
         return paths
 
 def remove_argument(to_remove, patt):
