@@ -356,7 +356,6 @@ def move_defines_to_start(filename, pattern):
     # print(defines_lines)
     # Remove the extracted lines from the original list
     lines = [f"{line.strip()}\n" for line in lines if line not in defines_lines]
-    # lines = [f"{line.strip()}\n" for line in lines if line not in defines_lines and "-I" not in line]
     # Insert the extracted lines at the start of the list
     lines = defines_lines + lines
 
